@@ -1,0 +1,467 @@
+{
+  "meta": {
+    "label": "defaults, target answers immediately",
+    "date": "2026-10-21T19:40:09.670Z",
+    "commit": "d8f3f80fb3dd31bd3fb602e93ceef545bf65ccd1",
+    "node": "v24.13.0",
+    "mongod": "8.2.6",
+    "platform": "Windows_NT 10.0.26200 x64",
+    "cpu": "13th Gen Intel(R) Core(TM) i5-13420H (12 logical CPUs)",
+    "memoryGb": 16,
+    "config": {
+      "intervalS": 30,
+      "targetDelayMs": 0,
+      "warmupS": 60,
+      "measureS": 150,
+      "schedulerTickMs": 5000,
+      "schedulerConcurrency": 10,
+      "serverEnvOverrides": {},
+      "monitorsPerUser": 20
+    }
+  },
+  "results": [
+    {
+      "monitors": 100,
+      "scheduler": {
+        "checks": 484,
+        "requiredChecksPerSec": 3.3333333333333335,
+        "achievedChecksPerSec": 3.2261074747043845,
+        "monitorsNotCheckedInWindow": 0,
+        "notUp": 0,
+        "retried": 0,
+        "driftMs": {
+          "n": 484,
+          "p50": 787,
+          "p95": 1121,
+          "p99": 1136,
+          "max": 1152,
+          "mean": 810.7458677685951
+        },
+        "checkLatencyMs": {
+          "n": 484,
+          "p50": 18,
+          "p95": 42,
+          "p99": 89,
+          "max": 101,
+          "mean": 19.958677685950413
+        },
+        "driftP95FirstHalfMs": 1125,
+        "driftP95SecondHalfMs": 920,
+        "ticks": 30,
+        "tickMeanMs": 126.26666666666665,
+        "checksUp": 500,
+        "checksDown": 0,
+        "skippedOverlap": 0,
+        "skippedBreaker": 0,
+        "targetRequests": 484
+      },
+      "resources": {
+        "serverCpuPctOfOneCore": 3.0621358964446155,
+        "serverPeakRssMb": 163.875,
+        "serverPeakHeapUsedMb": 102.19036102294922,
+        "eventLoopLagP99Ms": 44.761086999999996,
+        "eventLoopLagMaxMs": 83.55839900000001,
+        "mongodCpuPctOfOneCore": 3.040806260248223,
+        "mongodRssMb": 59.6328125
+      }
+    },
+    {
+      "monitors": 500,
+      "scheduler": {
+        "checks": 2120,
+        "requiredChecksPerSec": 16.666666666666668,
+        "achievedChecksPerSec": 14.13069560348735,
+        "monitorsNotCheckedInWindow": 0,
+        "notUp": 0,
+        "retried": 0,
+        "driftMs": {
+          "n": 2120,
+          "p50": 3570,
+          "p95": 4666,
+          "p99": 4774,
+          "max": 4860,
+          "mean": 3737.2900943396226
+        },
+        "checkLatencyMs": {
+          "n": 2120,
+          "p50": 23,
+          "p95": 54,
+          "p99": 86,
+          "max": 159,
+          "mean": 26.641037735849057
+        },
+        "driftP95FirstHalfMs": 4696,
+        "driftP95SecondHalfMs": 3948,
+        "ticks": 27,
+        "tickMeanMs": 603.8888888888889,
+        "checksUp": 2180,
+        "checksDown": 0,
+        "skippedOverlap": 0,
+        "skippedBreaker": 0,
+        "targetRequests": 2228
+      },
+      "resources": {
+        "serverCpuPctOfOneCore": 9.425573892873329,
+        "serverPeakRssMb": 176.48828125,
+        "serverPeakHeapUsedMb": 102.58341979980469,
+        "eventLoopLagP99Ms": 51.838975000000005,
+        "eventLoopLagMaxMs": 93.782015,
+        "mongodCpuPctOfOneCore": 5.373663582797877,
+        "mongodRssMb": 71.02734375
+      }
+    },
+    {
+      "monitors": 1000,
+      "scheduler": {
+        "checks": 4526,
+        "requiredChecksPerSec": 33.333333333333336,
+        "achievedChecksPerSec": 30.1679031107734,
+        "monitorsNotCheckedInWindow": 0,
+        "notUp": 0,
+        "retried": 0,
+        "driftMs": {
+          "n": 4526,
+          "p50": 1583,
+          "p95": 5884,
+          "p99": 6504,
+          "max": 6596,
+          "mean": 1982.3079982324348
+        },
+        "checkLatencyMs": {
+          "n": 4526,
+          "p50": 22,
+          "p95": 43,
+          "p99": 58,
+          "max": 95,
+          "mean": 23.510826336721166
+        },
+        "driftP95FirstHalfMs": 2347,
+        "driftP95SecondHalfMs": 5925,
+        "ticks": 25,
+        "tickMeanMs": 1231.92,
+        "checksUp": 4552,
+        "checksDown": 0,
+        "skippedOverlap": 0,
+        "skippedBreaker": 0,
+        "targetRequests": 4526
+      },
+      "resources": {
+        "serverCpuPctOfOneCore": 17.44485992521347,
+        "serverPeakRssMb": 253.21875,
+        "serverPeakHeapUsedMb": 126.8325424194336,
+        "eventLoopLagP99Ms": 46.039038999999995,
+        "eventLoopLagMaxMs": 78.315519,
+        "mongodCpuPctOfOneCore": 8.62311450605558,
+        "mongodRssMb": 56.68359375
+      },
+      "api": [
+        {
+          "virtualUsers": 10,
+          "requests": 2994,
+          "requestsPerSec": 98.64584362953445,
+          "statuses": {
+            "200": 2994
+          },
+          "latencyMs": {
+            "n": 2994,
+            "p50": 92.33369999995921,
+            "p95": 178.43009999999776,
+            "p99": 230.02350000001024,
+            "max": 300.99159999995027,
+            "mean": 101.019204041417
+          },
+          "byRouteP95Ms": {
+            "GET /api/monitor": 180.03280000004452,
+            "GET /api/incidents": 148.99909999989904,
+            "GET /api/metrics/latency/:id": 202.82730000000447
+          },
+          "schedulerDuringApi": {
+            "checks": 730,
+            "requiredChecksPerSec": 33.333333333333336,
+            "achievedChecksPerSec": 23.990272437477408,
+            "monitorsNotCheckedInWindow": 270,
+            "notUp": 0,
+            "retried": 0,
+            "driftMs": {
+              "n": 730,
+              "p50": 6728,
+              "p95": 9005,
+              "p99": 9207,
+              "max": 9300,
+              "mean": 6717.416438356165
+            },
+            "checkLatencyMs": {
+              "n": 730,
+              "p50": 59,
+              "p95": 98,
+              "p99": 111,
+              "max": 126,
+              "mean": 61.07945205479452
+            },
+            "driftP95FirstHalfMs": 9065,
+            "driftP95SecondHalfMs": 7249,
+            "ticks": 4,
+            "tickMeanMs": 2736.4999999999995,
+            "checksUp": 920,
+            "checksDown": 0,
+            "skippedOverlap": 0,
+            "skippedBreaker": 0,
+            "targetRequests": 941
+          },
+          "resources": {
+            "serverCpuPctOfOneCore": 93.35502316868781,
+            "serverPeakRssMb": 389.02734375,
+            "serverPeakHeapUsedMb": 239.1184310913086,
+            "eventLoopLagP99Ms": 71.172095,
+            "eventLoopLagMaxMs": 154.53388700000002,
+            "mongodCpuPctOfOneCore": 36.86943376384371,
+            "mongodRssMb": 58.01953125
+          }
+        },
+        {
+          "virtualUsers": 50,
+          "requests": 3564,
+          "requestsPerSec": 116.88695024761405,
+          "statuses": {
+            "200": 3564
+          },
+          "latencyMs": {
+            "n": 3564,
+            "p50": 407.25619999994524,
+            "p95": 621.6910999999382,
+            "p99": 708.0588999999454,
+            "max": 955.064800000051,
+            "mean": 424.24842258698095
+          },
+          "byRouteP95Ms": {
+            "GET /api/monitor": 533.4017000000458,
+            "GET /api/incidents": 473.42780000006314,
+            "GET /api/metrics/latency/:id": 698.9113000000361
+          },
+          "schedulerDuringApi": {
+            "checks": 568,
+            "requiredChecksPerSec": 33.333333333333336,
+            "achievedChecksPerSec": 18.621119234173687,
+            "monitorsNotCheckedInWindow": 432,
+            "notUp": 0,
+            "retried": 0,
+            "driftMs": {
+              "n": 568,
+              "p50": 11037,
+              "p95": 16163,
+              "p99": 16824,
+              "max": 16852,
+              "mean": 10877.165492957747
+            },
+            "checkLatencyMs": {
+              "n": 568,
+              "p50": 178,
+              "p95": 246,
+              "p99": 287,
+              "max": 321,
+              "mean": 178.52464788732394
+            },
+            "driftP95FirstHalfMs": 9361,
+            "driftP95SecondHalfMs": 16386,
+            "ticks": 2,
+            "tickMeanMs": 11083.5,
+            "checksUp": 568,
+            "checksDown": 0,
+            "skippedOverlap": 0,
+            "skippedBreaker": 0,
+            "targetRequests": 568
+          },
+          "resources": {
+            "serverCpuPctOfOneCore": 92.61056289545294,
+            "serverPeakRssMb": 511.0625,
+            "serverPeakHeapUsedMb": 273.10577392578125,
+            "eventLoopLagP99Ms": 192.413695,
+            "eventLoopLagMaxMs": 206.438399,
+            "mongodCpuPctOfOneCore": 37.5504048782087,
+            "mongodRssMb": 61.75
+          }
+        }
+      ]
+    },
+    {
+      "monitors": 1500,
+      "scheduler": {
+        "checks": 6365,
+        "requiredChecksPerSec": 50,
+        "achievedChecksPerSec": 42.42852476719305,
+        "monitorsNotCheckedInWindow": 0,
+        "notUp": 0,
+        "retried": 0,
+        "driftMs": {
+          "n": 6365,
+          "p50": 6131,
+          "p95": 7143,
+          "p99": 7256,
+          "max": 7331,
+          "mean": 6057.990259230165
+        },
+        "checkLatencyMs": {
+          "n": 6365,
+          "p50": 27,
+          "p95": 52,
+          "p99": 68,
+          "max": 100,
+          "mean": 28.933071484681854
+        },
+        "driftP95FirstHalfMs": 7193,
+        "driftP95SecondHalfMs": 6593,
+        "ticks": 21,
+        "tickMeanMs": 2259.0952380952385,
+        "checksUp": 6365,
+        "checksDown": 0,
+        "skippedOverlap": 0,
+        "skippedBreaker": 0,
+        "targetRequests": 6365
+      },
+      "resources": {
+        "serverCpuPctOfOneCore": 25.789077237913038,
+        "serverPeakRssMb": 288.59765625,
+        "serverPeakHeapUsedMb": 146.79107666015625,
+        "eventLoopLagP99Ms": 54.198271,
+        "eventLoopLagMaxMs": 101.12204700000001,
+        "mongodCpuPctOfOneCore": 11.508695681156135,
+        "mongodRssMb": 63.37109375
+      }
+    },
+    {
+      "monitors": 2000,
+      "scheduler": {
+        "checks": 8420,
+        "requiredChecksPerSec": 66.66666666666667,
+        "achievedChecksPerSec": 56.12472754177693,
+        "monitorsNotCheckedInWindow": 0,
+        "notUp": 0,
+        "retried": 0,
+        "driftMs": {
+          "n": 8420,
+          "p50": 5596,
+          "p95": 8617,
+          "p99": 8895,
+          "max": 8951,
+          "mean": 5868.3597387173395
+        },
+        "checkLatencyMs": {
+          "n": 8420,
+          "p50": 18,
+          "p95": 50,
+          "p99": 72,
+          "max": 121,
+          "mean": 20.879334916864607
+        },
+        "driftP95FirstHalfMs": 8812,
+        "driftP95SecondHalfMs": 6812,
+        "ticks": 19,
+        "tickMeanMs": 3382.210526315791,
+        "checksUp": 8910,
+        "checksDown": 0,
+        "skippedOverlap": 0,
+        "skippedBreaker": 0,
+        "targetRequests": 8654
+      },
+      "resources": {
+        "serverCpuPctOfOneCore": 29.880751618085224,
+        "serverPeakRssMb": 250.98828125,
+        "serverPeakHeapUsedMb": 161.6503677368164,
+        "eventLoopLagP99Ms": 73.92460700000001,
+        "eventLoopLagMaxMs": 161.480703,
+        "mongodCpuPctOfOneCore": 13.49793031735134,
+        "mongodRssMb": 54.4375
+      }
+    },
+    {
+      "monitors": 2500,
+      "scheduler": {
+        "checks": 9313,
+        "requiredChecksPerSec": 83.33333333333333,
+        "achievedChecksPerSec": 61.90507843658602,
+        "monitorsNotCheckedInWindow": 0,
+        "notUp": 0,
+        "retried": 0,
+        "driftMs": {
+          "n": 9313,
+          "p50": 9507,
+          "p95": 10076,
+          "p99": 10333,
+          "max": 10669,
+          "mean": 9525.210136368518
+        },
+        "checkLatencyMs": {
+          "n": 9313,
+          "p50": 14,
+          "p95": 36,
+          "p99": 49,
+          "max": 1222,
+          "mean": 16.01460324277891
+        },
+        "driftP95FirstHalfMs": 10027,
+        "driftP95SecondHalfMs": 10253,
+        "ticks": 19,
+        "tickMeanMs": 2894.21052631579,
+        "checksUp": 9639,
+        "checksDown": 0,
+        "skippedOverlap": 0,
+        "skippedBreaker": 0,
+        "targetRequests": 9667
+      },
+      "resources": {
+        "serverCpuPctOfOneCore": 29.44562616325446,
+        "serverPeakRssMb": 322.8984375,
+        "serverPeakHeapUsedMb": 161.3745346069336,
+        "eventLoopLagP99Ms": 45.907967,
+        "eventLoopLagMaxMs": 1222.639615,
+        "mongodCpuPctOfOneCore": 14.427014091996796,
+        "mongodRssMb": 69.89453125
+      }
+    },
+    {
+      "monitors": 3000,
+      "scheduler": {
+        "checks": 9500,
+        "requiredChecksPerSec": 100,
+        "achievedChecksPerSec": 63.323623711030976,
+        "monitorsNotCheckedInWindow": 0,
+        "notUp": 0,
+        "retried": 0,
+        "driftMs": {
+          "n": 9500,
+          "p50": 17033,
+          "p95": 17781,
+          "p99": 17867,
+          "max": 17951,
+          "mean": 16976.735368421054
+        },
+        "checkLatencyMs": {
+          "n": 9500,
+          "p50": 19,
+          "p95": 40,
+          "p99": 56,
+          "max": 98,
+          "mean": 19.871894736842105
+        },
+        "driftP95FirstHalfMs": 17418,
+        "driftP95SecondHalfMs": 17831,
+        "ticks": 19,
+        "tickMeanMs": 2839.210526315791,
+        "checksUp": 9500,
+        "checksDown": 0,
+        "skippedOverlap": 0,
+        "skippedBreaker": 0,
+        "targetRequests": 9837
+      },
+      "resources": {
+        "serverCpuPctOfOneCore": 30.901261806523003,
+        "serverPeakRssMb": 278.34765625,
+        "serverPeakHeapUsedMb": 135.2692108154297,
+        "eventLoopLagP99Ms": 48.267263,
+        "eventLoopLagMaxMs": 194.11763100000002,
+        "mongodCpuPctOfOneCore": 14.601761063303629,
+        "mongodRssMb": 58.0078125
+      }
+    }
+  ]
+}
