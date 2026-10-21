@@ -12,8 +12,10 @@ WebSockets.
 **[Live demo →](https://watchtower-monitoring.onrender.com)**
  · [API docs](https://watchtower-monitoring.onrender.com/api/docs)
 
-> Free-tier hosting sleeps when idle, so the first request may take ~30 seconds
-> to wake.
+> Free-tier hosting sleeps when idle. A scheduled workflow
+> ([keep-warm.yml](.github/workflows/keep-warm.yml)) keeps the demo awake from
+> about 08:30 to 21:30 IST; outside those hours the first request can take up
+> to a minute.
 
 > **Origin:** WatchTower began as a hackathon project built by a team of four.
 > It has since been rebuilt for production. See
