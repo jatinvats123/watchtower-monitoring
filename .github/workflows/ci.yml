@@ -44,9 +44,9 @@ jobs:
     name: Lint & format
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
           cache: npm
@@ -79,9 +79,9 @@ jobs:
         node: [20, 22]
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: ${{ matrix.node }}
           cache: npm
@@ -92,7 +92,7 @@ jobs:
 
       - name: Cache mongodb-memory-server binary
         # Otherwise every job re-downloads a ~100MB mongod.
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.cache/mongodb-binaries
           key: mongodb-binaries-${{ runner.os }}
@@ -104,7 +104,7 @@ jobs:
 
       - name: Upload coverage
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: coverage-node-${{ matrix.node }}
           path: Backend/coverage/
@@ -115,9 +115,9 @@ jobs:
     name: Dependency & filesystem scan
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
           cache: npm
@@ -189,9 +189,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: [lint]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
           cache: npm
@@ -216,9 +216,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: [lint]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-buildx-action@v4
 
       # Layer caches are READ from this ref and from main, but WRITTEN only to
       # this ref's own scope.
@@ -229,7 +229,7 @@ jobs:
       # and passes in another for identical code. Separate write scopes make
       # that impossible; reading main's scope keeps the cache hit rate.
       - name: Build backend image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: Backend/Dockerfile
@@ -241,7 +241,7 @@ jobs:
           cache-to: type=gha,mode=max,scope=backend-${{ github.ref_name }}
 
       - name: Build frontend image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: ./Frontend
           file: Frontend/Dockerfile
@@ -322,7 +322,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [docker]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Start the stack
         # Exercises the real topology: compose waits for Mongo to be HEALTHY
@@ -440,9 +440,9 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: coverage-node-20
           path: Backend/coverage
