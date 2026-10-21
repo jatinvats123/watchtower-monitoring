@@ -1,0 +1,30 @@
+name: Keep demo warm
+
+# Render's free tier puts the service to sleep after 15 minutes without traffic,
+# and the next visitor then waits about a minute for a cold start. This pings the
+# liveness route every 10 minutes from about 08:30 to 21:30 IST, when recruiters
+# are most likely to open the live demo.
+#
+# The window is deliberately not 24/7: Render's free plan caps instance hours per
+# workspace each month, and other free services on the same account need some.
+# GitHub also pauses scheduled workflows after 60 days without repository
+# activity; re-enable this one from the Actions tab if that happens.
+
+on:
+  schedule:
+    - cron: '3,13,23,33,43,53 3-15 * * *'
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Ping the liveness route
+        run: |
+          curl --fail --silent --show-error --retry 3 --retry-delay 15 --retry-all-errors \
+            --max-time 120 --output /dev/null \
+            --write-out "HTTP %{http_code} in %{time_total}s\n" \
+            https://watchtower-monitoring.onrender.com/api/health
