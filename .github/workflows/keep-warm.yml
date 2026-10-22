@@ -1,30 +1,156 @@
 name: Keep demo warm
 
-# Render's free tier puts the service to sleep after 15 minutes without traffic,
-# and the next visitor then waits about a minute for a cold start. This pings the
-# liveness route every 10 minutes from about 08:30 to 21:30 IST, when recruiters
-# are most likely to open the live demo.
+# Render's free plan spins the demo down after 15 minutes without inbound
+# traffic, and the next visitor waits about a minute while it starts again
+# (63 s measured on 22 Oct 2026).
 #
-# The window is deliberately not 24/7: Render's free plan caps instance hours per
-# workspace each month, and other free services on the same account need some.
-# GitHub also pauses scheduled workflows after 60 days without repository
-# activity; re-enable this one from the Actions tab if that happens.
+# The first version of this workflow pinged on a cron schedule every 10 minutes
+# and the demo still slept most of the day. GitHub runs scheduled workflows on a
+# best-effort basis: they are delayed under load and can be dropped. On 22 Oct
+# the schedule had 48 slots between 08:30 and 16:30 IST and GitHub started
+# exactly one run, which itself found the demo asleep (62 s).
+#
+# So nothing here depends on the scheduler being punctual any more:
+#
+#  - a "keeper" run pings every 10 minutes for 340 minutes, just under GitHub's
+#    6-hour job limit, then dispatches its successor. The successor waits in the
+#    concurrency group until this run has finished, so exactly one keeper is
+#    pinging at any time;
+#  - the schedule is only a watchdog. Every 2 hours (when GitHub gets round to
+#    it) it checks that a keeper is running and starts one if not: after the
+#    first merge, a GitHub outage or a cancelled run. It finishes in seconds.
+#
+# Every ping is logged with its response time. Anything slower than 10 s was a
+# wake from sleep and is raised as a warning on the run.
+#
+# Render budget: always-on costs at most 24 h x 31 days = 744 instance hours a
+# month, inside the 750 free hours Render gives each WORKSPACE. That leaves about
+# 6 hours for every other free service in the same workspace; if together they
+# use more, Render suspends all of them, this demo included, until the 1st. If
+# other free services share the workspace, narrow WARM_HOURS_UTC below.
+#
+# GitHub also disables scheduled workflows after 60 days without repository
+# activity. If that happens, re-enable this one from the Actions tab and run it
+# once by hand to start a keeper.
 
 on:
   schedule:
-    - cron: '3,13,23,33,43,53 3-15 * * *'
+    - cron: '41 */2 * * *'
   workflow_dispatch:
+    inputs:
+      minutes:
+        description: 'How long this keeper pings before handing over (max 340)'
+        required: false
+        default: '340'
+      hand_over:
+        description: 'Start the next keeper when this one ends'
+        type: boolean
+        default: true
+
+# Keepers queue behind each other, so a successor starts as soon as its
+# predecessor finishes. Watchdog runs have their own group and never wait.
+concurrency:
+  group: keep-warm-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: false
 
 permissions: {}
 
+env:
+  URL: https://watchtower-monitoring.onrender.com/api/health
+  # Under Render's 15-minute idle limit, with room for a slow wake or hand-over.
+  INTERVAL_SECONDS: '600'
+  # UTC hours (inclusive) in which to ping. 0-23 is always; 3-16 is roughly
+  # 08:30-22:30 IST.
+  WARM_HOURS_UTC: '0-23'
+  SLOW_SECONDS: '10'
+
 jobs:
-  ping:
+  watchdog:
+    if: github.event_name == 'schedule'
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    permissions:
+      actions: write
     steps:
-      - name: Ping the liveness route
+      - name: Start a keeper if none is running
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          curl --fail --silent --show-error --retry 3 --retry-delay 15 --retry-all-errors \
-            --max-time 120 --output /dev/null \
-            --write-out "HTTP %{http_code} in %{time_total}s\n" \
-            https://watchtower-monitoring.onrender.com/api/health
+          active=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow keep-warm.yml \
+            --event workflow_dispatch --branch "$GITHUB_REF_NAME" --limit 20 \
+            --json status --jq '[.[] | select(.status != "completed")] | length')
+          if [ "$active" -gt 0 ]; then
+            echo "A keeper is already running; nothing to do."
+            exit 0
+          fi
+          echo "::warning title=Keeper restarted::No keeper was running, so the demo may have been asleep. Starting one."
+          gh workflow run keep-warm.yml --repo "$GITHUB_REPOSITORY" --ref "$GITHUB_REF_NAME"
+
+  keeper:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    permissions:
+      actions: write
+    steps:
+      - name: Ping the demo and log each response time
+        env:
+          MINUTES: ${{ inputs.minutes }}
+        run: |
+          case "$MINUTES" in '' | *[!0-9]*) MINUTES=340 ;; esac
+          [ "$MINUTES" -le 340 ] || MINUTES=340
+          from=${WARM_HOURS_UTC%-*}
+          to=${WARM_HOURS_UTC#*-}
+          deadline=$(( $(date +%s) + MINUTES * 60 ))
+          pings=0
+          slow=0
+          failed=0
+
+          {
+            echo "### Pings of $URL"
+            echo
+            echo "| UTC | IST | HTTP | Seconds |"
+            echo "|---|---|---|---:|"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          while :; do
+            utc=$(date -u +'%F %H:%M:%S')
+            ist=$(TZ=Asia/Kolkata date +'%H:%M')
+            hour=$(date -u +%-H)
+
+            if [ "$hour" -ge "$from" ] && [ "$hour" -le "$to" ]; then
+              # curl prints --write-out even when it fails, e.g. "000 120.0" on
+              # a timeout, so one line covers success and failure alike.
+              result=$(curl --silent --output /dev/null --max-time 120 \
+                --write-out '%{http_code} %{time_total}' "$URL") || true
+              code=${result%% *}
+              secs=$(printf '%.1f' "${result##* }")
+              pings=$((pings + 1))
+              echo "$utc UTC ($ist IST)  HTTP $code  ${secs}s"
+              echo "| $utc | $ist | $code | $secs |" >> "$GITHUB_STEP_SUMMARY"
+
+              if [ "$code" != 200 ]; then
+                failed=$((failed + 1))
+                echo "::warning title=Ping failed::HTTP $code after ${secs}s at $utc UTC ($ist IST)"
+              elif awk -v s="$secs" -v t="$SLOW_SECONDS" 'BEGIN { exit !(s > t) }'; then
+                slow=$((slow + 1))
+                echo "::warning title=Slow wake::${secs}s at $utc UTC ($ist IST): the demo was asleep"
+              fi
+            else
+              echo "$utc UTC ($ist IST)  outside WARM_HOURS_UTC=$WARM_HOURS_UTC, not pinging"
+            fi
+
+            [ $(( $(date +%s) + INTERVAL_SECONDS )) -le "$deadline" ] || break
+            sleep "$INTERVAL_SECONDS"
+          done
+
+          summary="$pings pings, $slow slower than ${SLOW_SECONDS}s, $failed failed"
+          echo "$summary"
+          printf '\n%s\n' "$summary" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Hand over to the next keeper
+        # Not after a cancel: cancelling a keeper is how to stop the chain.
+        if: ${{ !cancelled() && inputs.hand_over }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run keep-warm.yml --repo "$GITHUB_REPOSITORY" --ref "$GITHUB_REF_NAME"
