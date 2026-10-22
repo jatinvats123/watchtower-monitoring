@@ -39,6 +39,12 @@ describe('HTTP probe', () => {
     nock.cleanAll();
   });
 
+  // nock patches node:http for the whole Jest worker, not just this file.
+  // Unrestored, the next suite in the worker stacks its own interceptor on top,
+  // and a replyWithError is then emitted between the two layers where nothing
+  // listens: an "Unhandled error" in whichever test asked for it.
+  afterAll(() => nock.restore());
+
   describe('with mocked targets (nock)', () => {
     it('reports UP for a 200', async () => {
       nock('https://ok.test').get('/').reply(200, 'hello');

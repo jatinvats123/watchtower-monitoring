@@ -95,6 +95,8 @@ describe('Egress guard (SSRF)', () => {
   });
 
   afterAll(async () => {
+    // Unpatch node:http for the next suite in this worker (see probe.test.js).
+    nock.restore();
     await new Promise((resolve) => internal.close(resolve));
     await disconnectTestDb();
   });
