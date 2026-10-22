@@ -1,6 +1,4 @@
 import dns from 'node:dns';
-import http from 'node:http';
-import https from 'node:https';
 import net from 'node:net';
 
 /**
@@ -17,9 +15,10 @@ import net from 'node:net';
  *  1. checkUrl(): synchronous, before any request. It checks the scheme, and
  *     the host when that is an IP literal or a localhost name. Literals must be
  *     judged here because net.connect never calls `lookup` for them.
- *  2. guardedLookup(): the `lookup` of the agent that opens the socket. It
- *     resolves the name, rejects the target if ANY address is internal, and
- *     hands net.connect exactly the addresses it checked. Validating first and
+ *  2. guardedLookup(): the `lookup` the socket is opened with (see
+ *     egressRequestOptions). It resolves the name, rejects the target if ANY
+ *     address is internal, and hands net.connect exactly the addresses it
+ *     checked. Validating first and
  *     letting the HTTP client resolve again would leave a gap that DNS
  *     rebinding walks straight through: public to the check, private to the
  *     connect.
@@ -260,13 +259,15 @@ export function guardedLookup(dnsLookup = dns.lookup) {
 }
 
 /**
- * A fresh agent whose sockets can only reach addresses guardedLookup approved.
- * One per request, like `agent: false`, so nothing is pooled or reused.
+ * http.request options whose socket can only reach addresses guardedLookup
+ * approved. `agent: false` gives every request its own one-off agent, so no
+ * socket is pooled or reused, and Node passes `lookup` to that agent's
+ * net.connect / tls.connect.
  */
-export function egressAgent(protocol, { dnsLookup, ...options } = {}) {
-  const Agent = protocol === 'https:' ? https.Agent : http.Agent;
-  return new Agent({ ...options, lookup: guardedLookup(dnsLookup) });
-}
+export const egressRequestOptions = ({ dnsLookup } = {}) => ({
+  agent: false,
+  lookup: guardedLookup(dnsLookup),
+});
 
 /**
  * Everything the connect-time guard checks, run ahead of time so the API can
@@ -304,7 +305,7 @@ export default {
   blockedRange,
   checkUrl,
   guardedLookup,
-  egressAgent,
+  egressRequestOptions,
   assertPublicUrl,
   privateTargetsAllowed,
 };

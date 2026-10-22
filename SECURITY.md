@@ -188,7 +188,7 @@ and infer reachability from status codes and latency.
   link-local, CGNAT, `0.0.0.0/8`, multicast, reserved, IPv6 unique-local, or the
   IPv4-mapped or NAT64 form of one of these. The URL parser canonicalises IP
   literals first, so decimal, octal and hex spellings get the same verdict;
-- the check runs in the agent's `lookup`, so the validated address is the one
+- the check runs in the connection's `lookup`, so the validated address is the one
   connected to (no DNS-rebinding window), on every retry and every redirect hop;
 - webhooks do not follow redirects;
 - creating or updating a monitor or webhook with an internal target returns 400.

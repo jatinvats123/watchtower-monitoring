@@ -1,7 +1,11 @@
 import http from 'node:http';
 import https from 'node:https';
 import { schedulerConfig } from '../config/scheduler.config.js';
-import { checkUrl, egressAgent, HTTP_PROTOCOLS } from '../utils/egress.js';
+import {
+  checkUrl,
+  egressRequestOptions,
+  HTTP_PROTOCOLS,
+} from '../utils/egress.js';
 
 /**
  * HTTP probe.
@@ -213,12 +217,12 @@ export function probeOnce(
             // on the origin it was configured for (see sameOrigin above).
             ...outboundAuth,
           },
-          // A fresh agent, and so a fresh socket, per attempt. Connection reuse
-          // would make DNS/TCP/TLS read as 0ms on every check after the first —
+          // `agent: false`: a fresh socket per attempt. Connection reuse would
+          // make DNS/TCP/TLS read as 0ms on every check after the first —
           // technically true, but it hides exactly the regressions we are here
-          // to catch. Its lookup is the egress guard, so the address that was
+          // to catch. `lookup` is the egress guard, so the address that was
           // validated is the address that gets connected to.
-          agent: egressAgent(parsed.protocol, { dnsLookup }),
+          ...egressRequestOptions({ dnsLookup }),
           // Certificate validation defaults ON. An expired cert is an outage,
           // and the previous implementation disabled this globally, making the
           // monitor structurally blind to it.

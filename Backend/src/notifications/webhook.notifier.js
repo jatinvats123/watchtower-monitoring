@@ -3,7 +3,11 @@ import https from 'node:https';
 import { IncidentEvent } from './notifier.js';
 import channelModel from '../models/channel.model.js';
 import logger from '../config/logger.js';
-import { checkUrl, egressAgent, HTTP_PROTOCOLS } from '../utils/egress.js';
+import {
+  checkUrl,
+  egressRequestOptions,
+  HTTP_PROTOCOLS,
+} from '../utils/egress.js';
 
 /**
  * Webhook / Slack notifier.
@@ -20,8 +24,8 @@ const TIMEOUT_MS = 5_000;
  * POST a JSON body through the egress guard, so a webhook cannot be aimed at
  * localhost, a private range or the cloud metadata service.
  *
- * node:http rather than fetch: fetch cannot take an agent, so it cannot use
- * the guard's connect-time lookup. Redirects are not followed, as with GitHub
+ * node:http rather than fetch: fetch cannot take a custom `lookup`, so it
+ * cannot use the guard's connect-time check. Redirects are not followed, as with GitHub
  * and Stripe webhooks: a receiver that answers 3xx is reported, not chased.
  *
  * @returns {Promise<number>} the receiver's status code
@@ -49,7 +53,7 @@ export function postJson(
           'Content-Length': Buffer.byteLength(body),
           'User-Agent': 'WatchTower/1.0 (+webhook)',
         },
-        agent: egressAgent(url.protocol, { dnsLookup }),
+        ...egressRequestOptions({ dnsLookup }),
       },
       (res) => {
         // The receiver's body is irrelevant; drain it so the socket closes.
@@ -67,6 +71,9 @@ export function postJson(
     }, timeoutMs);
     req.on('close', () => clearTimeout(timer));
     req.on('error', reject);
+    // A socket can emit 'error' after the request has settled (a late RST), and
+    // an unhandled 'error' takes the process down. See monitor.service.js.
+    req.on('socket', (socket) => socket.on('error', () => {}));
     req.end(body);
   });
 }
