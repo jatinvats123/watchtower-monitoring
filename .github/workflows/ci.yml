@@ -148,11 +148,13 @@ jobs:
         # The findings are also echoed into the job summary and as annotations,
         # so a failure is legible without opening the raw log.
         env:
-          # Trivy's default database lives on ghcr.io, which rate-limits
-          # anonymous pulls. On a busy runner that surfaces as a scan failure
-          # with nothing wrong in the code, and the natural response to that is
-          # to re-run rather than read it. The ECR mirror is not rate limited.
-          TRIVY_DB_REPOSITORY: public.ecr.aws/aquasecurity/trivy-db:2
+          # Every registry hosting the vulnerability database rate-limits
+          # anonymous pulls at times: ghcr.io often, and the ECR mirror too
+          # ("TOOMANYREQUESTS: Data limit exceeded", Oct 2026). A scan that fails
+          # on a download, with nothing wrong in the code, teaches people to
+          # re-run rather than read. So list several mirrors: Trivy tries them
+          # in order and fails only if every one refuses.
+          TRIVY_DB_REPOSITORY: public.ecr.aws/aquasecurity/trivy-db:2,mirror.gcr.io/aquasec/trivy-db:2,ghcr.io/aquasecurity/trivy-db:2
         run: |
           set +e
           docker run --rm \
@@ -283,7 +285,8 @@ jobs:
         # actionable here; bumping the base image is Dependabot's job, not a
         # reason to block every pull request.
         env:
-          TRIVY_DB_REPOSITORY: public.ecr.aws/aquasecurity/trivy-db:2
+          # Same mirror list as the filesystem scan, for the same reason.
+          TRIVY_DB_REPOSITORY: public.ecr.aws/aquasecurity/trivy-db:2,mirror.gcr.io/aquasec/trivy-db:2,ghcr.io/aquasecurity/trivy-db:2
         run: |
           docker save watchtower-backend:ci -o /tmp/backend-image.tar
 
