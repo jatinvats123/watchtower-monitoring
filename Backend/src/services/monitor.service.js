@@ -1,6 +1,7 @@
 import http from 'node:http';
 import https from 'node:https';
 import { schedulerConfig } from '../config/scheduler.config.js';
+import { checkUrl, egressAgent, HTTP_PROTOCOLS } from '../utils/egress.js';
 
 /**
  * HTTP probe.
@@ -70,6 +71,11 @@ const originOf = (url) => {
  * A phase is null when it was never observed (no TLS on plain HTTP, no DNS for
  * an IP literal, nothing at all if the failure preceded that phase).
  *
+ * Every hop goes through the egress guard (utils/egress.js): its URL is checked
+ * before the request, and its socket can only connect to addresses the guard's
+ * lookup approved. A target that is internal, or that redirects somewhere
+ * internal, is reported DOWN with ERR_EGRESS_BLOCKED and is never contacted.
+ *
  * @returns {Promise<object>} never rejects — a failed probe is a result, not an
  *   exception. The scheduler treats a thrown error and a DOWN result very
  *   differently, and "the target is down" must always be the latter.
@@ -81,6 +87,8 @@ export function probeOnce(
     ignoreTlsErrors = false,
     maxRedirects = 5,
     headers = {},
+    // dns.lookup-compatible resolver for the egress guard; injectable for tests.
+    dnsLookup,
   } = {}
 ) {
   return new Promise((resolve) => {
@@ -165,6 +173,21 @@ export function probeOnce(
         });
       }
 
+      // Checked on EVERY hop, not just the first: a public URL that 302s to
+      // http://169.254.169.254/ is the oldest SSRF trick there is. Neither a bad
+      // scheme nor an internal address fixes itself, so neither is retryable.
+      try {
+        checkUrl(parsed, { protocols: HTTP_PROTOCOLS });
+      } catch (err) {
+        return finish({
+          status: 'DOWN',
+          statusCode: null,
+          error: err.message,
+          errorCode: err.code,
+          retryable: false,
+        });
+      }
+
       const isHttps = parsed.protocol === 'https:';
 
       // Credentials must never survive a cross-origin redirect. A monitored
@@ -173,15 +196,6 @@ export function probeOnce(
       // become credential exfiltration on ours.
       const sameOrigin = originOf(targetUrl) === initialOrigin;
       const outboundAuth = sameOrigin ? headers : {};
-      if (!isHttps && parsed.protocol !== 'http:') {
-        return finish({
-          status: 'DOWN',
-          statusCode: null,
-          error: `Unsupported protocol: ${parsed.protocol}`,
-          errorCode: 'ERR_UNSUPPORTED_PROTOCOL',
-          retryable: false,
-        });
-      }
 
       const transport = isHttps ? https : http;
       const hopStart = now();
@@ -199,10 +213,12 @@ export function probeOnce(
             // on the origin it was configured for (see sameOrigin above).
             ...outboundAuth,
           },
-          // A fresh socket per attempt. Connection reuse would make DNS/TCP/TLS
-          // read as 0ms on every check after the first — technically true, but
-          // it hides exactly the regressions we are here to catch.
-          agent: false,
+          // A fresh agent, and so a fresh socket, per attempt. Connection reuse
+          // would make DNS/TCP/TLS read as 0ms on every check after the first —
+          // technically true, but it hides exactly the regressions we are here
+          // to catch. Its lookup is the egress guard, so the address that was
+          // validated is the address that gets connected to.
+          agent: egressAgent(parsed.protocol, { dnsLookup }),
           // Certificate validation defaults ON. An expired cert is an outage,
           // and the previous implementation disabled this globally, making the
           // monitor structurally blind to it.

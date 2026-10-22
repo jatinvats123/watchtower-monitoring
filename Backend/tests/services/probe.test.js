@@ -286,6 +286,10 @@ describe('HTTP probe', () => {
     let base;
 
     beforeAll(async () => {
+      // The fixture is a loopback server, which the egress guard refuses by
+      // default (tests/security/egress.test.js). Opt out the way a self-hosted
+      // instance monitoring internal services would.
+      process.env.ALLOW_PRIVATE_TARGETS = 'true';
       server = http.createServer((req, res) => {
         if (req.url === '/big') {
           // Larger than the 512KB body cap, to prove we stop reading.
@@ -301,6 +305,7 @@ describe('HTTP probe', () => {
     });
 
     afterAll(async () => {
+      delete process.env.ALLOW_PRIVATE_TARGETS;
       await new Promise((resolve) => server.close(resolve));
     });
 

@@ -172,6 +172,9 @@ async function startServer(mongoUrl, step) {
     JWT_EXPIRY: '1h',
     CREDENTIALS_ENCRYPTION_KEY: crypto.randomBytes(32).toString('hex'),
     AUTO_VERIFY_USERS: 'true',
+    // The dummy target listens on loopback, which the SSRF guard refuses by
+    // default. This is the self-hosted opt-out, used here for the same reason.
+    ALLOW_PRIVATE_TARGETS: 'true',
     LOG_LEVEL: 'info',
     LOG_TO_FILE: 'false',
     DOTENV_CONFIG_QUIET: 'true',

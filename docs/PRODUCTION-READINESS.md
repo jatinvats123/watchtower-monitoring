@@ -134,10 +134,9 @@ Stated plainly. A readiness document that claims none is not credible.
 
 ### Security
 
-6. **No SSRF allow-list.** A user can point a monitor at `169.254.169.254` or an
-   internal address and infer reachability from status codes and timing.
-   Partially mitigated (bodies never returned, capped, redirects capped, hard
-   deadline) but not solved. `SECURITY.md` T9.
+6. **SSRF: resolved.** Monitor checks and webhooks go through an egress guard
+   that refuses loopback, private, link-local, CGNAT and reserved addresses at
+   connect time, which also closes DNS rebinding. `SECURITY.md` T9.
 7. **`AUTO_VERIFY_USERS` defaults on.** Registration skips email verification.
    Now one env var rather than a hardcoded line, and it warns at boot in
    production, but the default is still permissive so the live demo works.
@@ -365,10 +364,6 @@ when WatchTower stops checking in closes it, and it is perhaps a day's work.
 Lighthouse and a smoke test, which would not catch a broken reconnect-resync or
 a tenancy mistake in a component. Vitest plus Testing Library on the auth flow,
 the realtime hook and the status components.
-
-**The SSRF allow-list.** Resolve the hostname, check the address against
-private ranges, and re-validate at connect time to defeat DNS rebinding. It is
-the one open security item I would not want to explain away twice.
 
 After that: rebuilding `StatusPages` on real data, since it is the last screen
 still rendering mock values, and a sustained load test to replace reasoning about
