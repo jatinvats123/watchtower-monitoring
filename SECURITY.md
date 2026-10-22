@@ -174,16 +174,31 @@ Phase 6 adds structured logging with explicit redaction.
 `CORS_ORIGIN` contains `*`, or if it is empty in production. Socket.IO now uses
 the same allow-list as the REST API rather than a separate single-origin value.
 
-### T9 — Server-side request forgery *(accepted risk — see §5)*
+### T9 — Server-side request forgery
 
-The scheduler fetches user-supplied URLs. A user can point a monitor at
-`http://169.254.169.254/` or an internal address and infer reachability from
-status codes and latency.
+The scheduler fetches user-supplied URLs and webhooks POST to them. Unguarded, a
+user could point a monitor at `http://169.254.169.254/` or an internal address
+and infer reachability from status codes and latency.
 
-**Partial controls** — response bodies are never returned to the user, only
-status code and timings; bodies are capped at 512 KB; redirects capped at 5;
-every check has a hard deadline. **Not yet mitigated:** no allow/deny-list on
-resolved IP ranges.
+**Controls** — every user-chosen outbound request goes through one egress guard,
+`Backend/src/utils/egress.js`:
+
+- only `http:` and `https:` are allowed;
+- the target is refused if any resolved address is loopback, RFC 1918,
+  link-local, CGNAT, `0.0.0.0/8`, multicast, reserved, IPv6 unique-local, or the
+  IPv4-mapped or NAT64 form of one of these. The URL parser canonicalises IP
+  literals first, so decimal, octal and hex spellings get the same verdict;
+- the check runs in the connection's `lookup`, so the validated address is the one
+  connected to (no DNS-rebinding window), on every retry and every redirect hop;
+- webhooks do not follow redirects;
+- creating or updating a monitor or webhook with an internal target returns 400.
+
+Response bodies are still never returned (status and timings only), bodies are
+capped at 512 KB, redirects at 5, and every check has a hard deadline.
+
+`ALLOW_PRIVATE_TARGETS=true` turns the address checks off for self-hosted
+instances that monitor internal services. It must stay off wherever untrusted
+users can register, which includes the public demo.
 
 ### T10 — Denial of service against monitored targets
 
@@ -220,14 +235,13 @@ Stated plainly because a threat model that claims completeness is not credible.
 | # | Limitation | Risk | Why it stands |
 |---|---|---|---|
 | 1 | **`AUTO_VERIFY_USERS` defaults to on** — registration skips email verification | Account spam under arbitrary addresses | Was a hardcoded `user.isVerified = true` marked "remove in production". Now a single env var, and it warns loudly at boot in production. Default preserved so the live demo keeps working; set `AUTO_VERIFY_USERS=false` to close it. |
-| 2 | **No SSRF allow-list** on monitor URLs | Internal network probing (T9) | Needs DNS-resolution-time IP filtering with re-validation before connect to avoid DNS rebinding. Real work, not a config flag. |
-| 3 | **No CSRF token** | Relies solely on `sameSite: 'strict'` | Adequate against classic CSRF in current browsers, but defence in depth is missing. |
-| 4 | **JWT returned in the response body** as well as the cookie | Widens exposure to any XSS | Kept because the current frontend reads it. Should be cookie-only. |
-| 5 | **No token revocation** | A stolen JWT is valid until expiry | Needs a denylist or short-lived tokens plus refresh. |
-| 6 | **No audit log** of security-relevant actions | Weak forensics after an incident | Notification dispatch is logged; auth events are not. |
-| 7 | **Secrets in platform env vars**, no managed secret store or rotation | Broad blast radius if the platform account is compromised | Appropriate to the current deployment tier. |
-| 8 | **No account lockout** after repeated failures | Rate limiting only | Lockout introduces its own DoS vector; deliberately deferred. |
-| 9 | **Dependency vulnerabilities unaudited** at time of writing | Unknown | `npm audit` reports outstanding advisories. Phase 5 adds an audit gate to CI. |
+| 2 | **No CSRF token** | Relies solely on `sameSite: 'strict'` | Adequate against classic CSRF in current browsers, but defence in depth is missing. |
+| 3 | **JWT returned in the response body** as well as the cookie | Widens exposure to any XSS | Kept because the current frontend reads it. Should be cookie-only. |
+| 4 | **No token revocation** | A stolen JWT is valid until expiry | Needs a denylist or short-lived tokens plus refresh. |
+| 5 | **No audit log** of security-relevant actions | Weak forensics after an incident | Notification dispatch is logged; auth events are not. |
+| 6 | **Secrets in platform env vars**, no managed secret store or rotation | Broad blast radius if the platform account is compromised | Appropriate to the current deployment tier. |
+| 7 | **No account lockout** after repeated failures | Rate limiting only | Lockout introduces its own DoS vector; deliberately deferred. |
+| 8 | **Dependency vulnerabilities unaudited** at time of writing | Unknown | `npm audit` reports outstanding advisories. Phase 5 adds an audit gate to CI. |
 
 ---
 

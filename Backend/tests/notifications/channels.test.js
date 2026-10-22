@@ -32,6 +32,8 @@ describe('Notification channels', () => {
 
   beforeAll(connectTestDb);
   afterAll(disconnectTestDb);
+  // Unpatch node:http for the next suite in this worker (see probe.test.js).
+  afterAll(() => nock.restore());
 
   beforeEach(async () => {
     await clearTestDb();

@@ -46,6 +46,8 @@ describe('Scheduler behaviour', () => {
 
   afterAll(async () => {
     notifierRegistry.clear();
+    // Unpatch node:http for the next suite in this worker (see probe.test.js).
+    nock.restore();
     await disconnectTestDb();
   });
 

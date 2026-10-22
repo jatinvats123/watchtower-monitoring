@@ -323,4 +323,3 @@ Stated here rather than discovered later.
 | Single checking region | Cannot distinguish "target down" from "we can't reach it" | Multi-region probes |
 | Lease, not fencing | A partitioned leader may overlap briefly | Tolerable: checks are idempotent |
 | Socket.IO sticky sessions | Polling fallback needs sticky routing to scale out | Redis adapter |
-| No SSRF allow-list | Monitors can probe internal addresses | DNS-time IP filtering (`SECURITY.md` T9) |

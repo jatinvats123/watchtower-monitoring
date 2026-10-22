@@ -3,9 +3,28 @@ import { asyncHandler } from '../utils/asyncHandler.js';
 import { ApiResponse } from '../utils/ApiResponse.js';
 import { ApiError } from '../utils/ApiError.js';
 import { sendEmail } from '../services/sendEmail.js';
+import { assertPublicUrl } from '../utils/egress.js';
 import logger from '../config/logger.js';
 
 const TYPES = ['Email', 'Slack', 'Webhook', 'SMS'];
+
+// Delivered by POSTing to the target (webhook.notifier.js), so it must be a URL
+// the egress guard will let the server reach.
+const URL_TYPES = ['Slack', 'Webhook'];
+
+async function assertDeliverable(type, target) {
+  if (!URL_TYPES.includes(type)) return;
+  try {
+    await assertPublicUrl(target);
+  } catch (err) {
+    throw new ApiError(
+      400,
+      err.code === 'ERR_EGRESS_BLOCKED'
+        ? err.message
+        : `${type} target must be an http:// or https:// URL`
+    );
+  }
+}
 
 export const listChannels = asyncHandler(async (req, res) => {
   const channels = await channelDao.find(
@@ -30,6 +49,7 @@ export const createChannel = asyncHandler(async (req, res) => {
   if ((type || 'Email') === 'Email' && !/^\S+@\S+\.\S+$/.test(target)) {
     throw new ApiError(400, 'Enter a valid email address');
   }
+  await assertDeliverable(type || 'Email', String(target).trim());
 
   const exists = await channelDao.findOne(req.user.id, {
     type: type || 'Email',
@@ -55,6 +75,16 @@ export const updateChannel = asyncHandler(async (req, res) => {
   if (req.body.type) {
     if (!TYPES.includes(req.body.type)) throw new ApiError(400, 'Invalid type');
     update.type = req.body.type;
+  }
+
+  // Either half can change on its own, so judge the pair as it will be stored.
+  if (update.target || update.type) {
+    const current = await channelDao.findById(req.user.id, channelId);
+    if (!current) throw new ApiError(404, 'Channel not found');
+    await assertDeliverable(
+      update.type ?? current.type,
+      update.target ?? current.target
+    );
   }
 
   const channel = await channelDao.updateById(req.user.id, channelId, update);

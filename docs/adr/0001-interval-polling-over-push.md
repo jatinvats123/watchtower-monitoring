@@ -64,9 +64,10 @@ limitation in `docs/PRODUCTION-READINESS.md`.
 
 **Polling third-party URLs is a request-forgery primitive.** A user can point a
 monitor at `169.254.169.254` or an internal address and infer reachability from
-status codes and timing. Partially mitigated (response bodies are never
-returned, only status and timings; bodies capped; redirects capped; hard
-deadline) but not solved — see SECURITY.md T9.
+status codes and timing. Partially mitigated at first (response bodies are
+never returned, only status and timings; bodies capped; redirects capped; hard
+deadline), and since closed by an egress guard that refuses internal addresses
+at connect time — see SECURITY.md T9.
 
 ## Alternatives considered
 

@@ -39,6 +39,12 @@ describe('HTTP probe', () => {
     nock.cleanAll();
   });
 
+  // nock patches node:http for the whole Jest worker, not just this file.
+  // Unrestored, the next suite in the worker stacks its own interceptor on top,
+  // and a replyWithError is then emitted between the two layers where nothing
+  // listens: an "Unhandled error" in whichever test asked for it.
+  afterAll(() => nock.restore());
+
   describe('with mocked targets (nock)', () => {
     it('reports UP for a 200', async () => {
       nock('https://ok.test').get('/').reply(200, 'hello');
@@ -286,6 +292,10 @@ describe('HTTP probe', () => {
     let base;
 
     beforeAll(async () => {
+      // The fixture is a loopback server, which the egress guard refuses by
+      // default (tests/security/egress.test.js). Opt out the way a self-hosted
+      // instance monitoring internal services would.
+      process.env.ALLOW_PRIVATE_TARGETS = 'true';
       server = http.createServer((req, res) => {
         if (req.url === '/big') {
           // Larger than the 512KB body cap, to prove we stop reading.
@@ -301,6 +311,7 @@ describe('HTTP probe', () => {
     });
 
     afterAll(async () => {
+      delete process.env.ALLOW_PRIVATE_TARGETS;
       await new Promise((resolve) => server.close(resolve));
     });
 

@@ -3,6 +3,7 @@ import { ApiResponse } from '../utils/ApiResponse.js';
 import { ApiError } from '../utils/ApiError.js';
 import { monitorDao } from '../dao/index.js';
 import { encryptSecret, hasCredentials } from '../utils/crypto.js';
+import { assertPublicUrl } from '../utils/egress.js';
 import logger from '../config/logger.js';
 
 /**
@@ -50,6 +51,19 @@ const normalizeUrl = (url) =>
   /^https?:\/\//i.test(url) ? url : `https://${url}`;
 
 /**
+ * Refuse an internal target when the monitor is saved, with a message the UI
+ * can show. The probe's connect-time guard is what enforces the rule on every
+ * check; this only makes the refusal immediate and explicit.
+ */
+async function assertMonitorTarget(url) {
+  try {
+    await assertPublicUrl(url);
+  } catch (err) {
+    throw new ApiError(400, err.message);
+  }
+}
+
+/**
  * Strip encrypted credentials from anything returned to a client. The
  * ciphertext is useless without the key, but there is no reason to ship it to
  * the browser, and doing so would expose it to any XSS that lands.
@@ -70,6 +84,7 @@ export const createMonitorController = asyncHandler(async (req, res) => {
   }
 
   const normalizedUrl = normalizeUrl(url);
+  await assertMonitorTarget(normalizedUrl);
 
   const isAlreadyMonitored = await monitorDao.findOne(req.user.id, {
     url: normalizedUrl,
@@ -131,7 +146,10 @@ export const deleteMonitorController = asyncHandler(async (req, res) => {
 
 export const updateMonitorController = asyncHandler(async (req, res) => {
   const patch = pickWritableFields(req.body);
-  if (req.body.url) patch.url = normalizeUrl(req.body.url);
+  if (req.body.url) {
+    patch.url = normalizeUrl(req.body.url);
+    await assertMonitorTarget(patch.url);
+  }
 
   const updatedMonitor = await monitorDao.updateById(
     req.user?.id,

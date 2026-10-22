@@ -270,6 +270,7 @@ npm run lockfiles:sync    # regenerate lockfiles on Linux (see note below)
 | `LOG_RETENTION_DAYS` | no | TTL on check history. Defaults `30` |
 | `LOG_LEVEL` | no | Pino level |
 | `METRICS_TOKEN` | no | Requires a bearer token on `/metrics` when set |
+| `ALLOW_PRIVATE_TARGETS` | no | Defaults `false`. Set `true` only on a self-hosted instance that must monitor internal services: monitors and webhooks may then reach loopback, private and link-local addresses. See [Security](#security) |
 
 Per-monitor `interval`, `timeout`, `failureThreshold` and `successThreshold`
 override the global defaults.
@@ -330,6 +331,35 @@ secrets (Settings → Secrets and variables → Actions).
 
 ---
 
+## Security
+
+Monitors and webhooks make the server send requests to URLs that users type in.
+Every one of those requests goes through one egress guard
+([`Backend/src/utils/egress.js`](Backend/src/utils/egress.js)) so it cannot be
+turned against internal networks (SSRF):
+
+- **Schemes:** only `http` and `https`.
+- **Addresses:** the hostname is resolved and the target is refused if _any_
+  address is loopback, private (RFC 1918), link-local (including the cloud
+  metadata service at `169.254.169.254`), CGNAT (`100.64.0.0/10`),
+  `0.0.0.0/8`, multicast, reserved, IPv6 unique-local, or an IPv4-mapped IPv6
+  form of any of these. IP literals get the same verdict however they are
+  written: decimal `2130706433`, octal `0177.0.0.1`, hex `0x7f000001`,
+  bracketed IPv6.
+- **No DNS rebinding:** the check runs in the socket's `lookup`, so the address
+  that was validated is the address that is connected to.
+- **Redirects:** every hop of a monitor check is checked again (5 hops at most).
+  Webhook redirects are not followed.
+- **Clear errors:** creating or editing a monitor or webhook with an internal
+  target returns `400` with the reason, and the UI shows it.
+
+Self-hosting and need to monitor internal services? Set
+`ALLOW_PRIVATE_TARGETS=true`. It is off by default and should stay off anywhere
+people you don't trust can sign up. The scheme check applies either way. Threat
+model: [`SECURITY.md`](SECURITY.md) T9.
+
+---
+
 ## Future improvements
 
 - Additional check types: TCP port, DNS resolution, SSL expiry, keyword assertion
@@ -340,7 +370,6 @@ secrets (Settings → Secrets and variables → Actions).
 - Multi-region checking, to distinguish "target is down" from "our region cannot
   reach it"
 - Partitioned scheduling, so replicas scale checking and not just the API
-- SSRF allow-list on monitor URLs (`SECURITY.md` T9)
 - Anomaly detection on latency rather than fixed thresholds
 
 ---

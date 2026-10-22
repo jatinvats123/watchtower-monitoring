@@ -16,6 +16,8 @@ import {
 import Notification from '../../../components/Notification';
 
 const TYPES = ['Email', 'Slack', 'Webhook', 'SMS'];
+// Delivered by POSTing to the target, so the API only accepts a public URL.
+const URL_TYPES = ['Slack', 'Webhook'];
 
 const timeAgo = (date) => {
   if (!date) return '—';
@@ -347,7 +349,11 @@ const Alerts = () => {
                     setForm((f) => ({ ...f, target: e.target.value }))
                   }
                   placeholder={
-                    form.type === 'Email' ? 'alerts@example.com' : '#ops-alerts'
+                    form.type === 'Email'
+                      ? 'alerts@example.com'
+                      : URL_TYPES.includes(form.type)
+                        ? 'https://hooks.example.com/watchtower'
+                        : '#ops-alerts'
                   }
                   className="w-full mt-2 p-3 bg-[#faf9f5] border border-[#e6dfd8] rounded-xl text-[#141413]"
                 />

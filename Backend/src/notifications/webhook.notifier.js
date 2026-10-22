@@ -1,6 +1,13 @@
+import http from 'node:http';
+import https from 'node:https';
 import { IncidentEvent } from './notifier.js';
 import channelModel from '../models/channel.model.js';
 import logger from '../config/logger.js';
+import {
+  checkUrl,
+  egressRequestOptions,
+  HTTP_PROTOCOLS,
+} from '../utils/egress.js';
 
 /**
  * Webhook / Slack notifier.
@@ -12,6 +19,64 @@ import logger from '../config/logger.js';
  */
 
 const TIMEOUT_MS = 5_000;
+
+/**
+ * POST a JSON body through the egress guard, so a webhook cannot be aimed at
+ * localhost, a private range or the cloud metadata service.
+ *
+ * node:http rather than fetch: fetch cannot take a custom `lookup`, so it
+ * cannot use the guard's connect-time check. Redirects are not followed, as with GitHub
+ * and Stripe webhooks: a receiver that answers 3xx is reported, not chased.
+ *
+ * @returns {Promise<number>} the receiver's status code
+ */
+export function postJson(
+  target,
+  body,
+  { timeoutMs = TIMEOUT_MS, dnsLookup } = {}
+) {
+  return new Promise((settle, reject) => {
+    let url;
+    try {
+      url = checkUrl(target, { protocols: HTTP_PROTOCOLS });
+    } catch (err) {
+      return reject(err);
+    }
+
+    const transport = url.protocol === 'https:' ? https : http;
+    const req = transport.request(
+      url,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(body),
+          'User-Agent': 'WatchTower/1.0 (+webhook)',
+        },
+        ...egressRequestOptions({ dnsLookup }),
+      },
+      (res) => {
+        // The receiver's body is irrelevant; drain it so the socket closes.
+        res.on('error', () => {});
+        res.resume();
+        settle(res.statusCode);
+      }
+    );
+
+    // A hung receiver must not hold an incident transition open.
+    const timer = setTimeout(() => {
+      const err = new Error(`Receiver did not answer within ${timeoutMs}ms`);
+      err.code = 'ETIMEDOUT';
+      req.destroy(err);
+    }, timeoutMs);
+    req.on('close', () => clearTimeout(timer));
+    req.on('error', reject);
+    // A socket can emit 'error' after the request has settled (a late RST), and
+    // an unhandled 'error' takes the process down. See monitor.service.js.
+    req.on('socket', (socket) => socket.on('error', () => {}));
+    req.end(body);
+  });
+}
 
 /** Slack renders `text`; a generic receiver gets the structured fields. */
 function buildBody({ event, monitor, incident, occurredAt }) {
@@ -70,20 +135,17 @@ export const webhookNotifier = {
     return Promise.all(
       channels.map(async (channel) => {
         try {
-          const response = await fetch(channel.target, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body,
-            // A hung receiver must not hold an incident transition open.
-            signal: AbortSignal.timeout(TIMEOUT_MS),
-          });
+          const statusCode = await postJson(channel.target, body);
 
-          if (!response.ok) {
+          if (statusCode < 200 || statusCode >= 300) {
             return {
               channel: channel.type,
               status: 'Failed',
               target: channel.target,
-              detail: `Receiver returned HTTP ${response.status}`,
+              detail:
+                statusCode < 400
+                  ? `Receiver redirected (HTTP ${statusCode}); webhook redirects are not followed`
+                  : `Receiver returned HTTP ${statusCode}`,
             };
           }
 
