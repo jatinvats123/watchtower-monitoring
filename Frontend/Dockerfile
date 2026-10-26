@@ -30,7 +30,7 @@ RUN npx vite build --outDir dist --emptyOutDir
 # ---------------------------------------------------------------------------
 # Stage 2 — runtime
 # ---------------------------------------------------------------------------
-FROM nginx:1.29-alpine AS runtime
+FROM nginx:1.31-alpine AS runtime
 
 # Port 8080, not 80: binding below 1024 requires privileges we are about to
 # drop.
